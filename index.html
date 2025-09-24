@@ -131,16 +131,14 @@
   <div id="auth-screen" class="space-y-6 hidden">
     <div class="text-center">
       <img src="https://brown-turkey-493487.hostingersite.com/wp-content/uploads/2025/05/logo-2.png" alt="Pokémon Veiling Logo" class="w-full max-w-[195px] mx-auto mb-4">
-      <h2 id="auth-title" class="text-2xl font-bold text-white text-shadow mb-4">Welkom Terug!</h2>
+      <h2 id="auth-title" class="text-2xl font-bold text-white text-shadow mb-2">Welkom Terug!</h2>
+      <button id="authToggleButton" class="text-yellow-300 font-bold bg-transparent border-none mb-4">Nog geen account? Registreer hier</button>
       <p id="auth-context-message" class="text-yellow-200"></p>
     </div>
     <div class="space-y-4">
       <input type="tel" id="authPhone" placeholder="Jouw telefoonnummer" class="w-full input-field">
       <span id="auth-error-message" class="text-yellow-300 text-sm hidden"></span>
       <button id="authButton" class="w-full btn btn-green">Login</button>
-    </div>
-    <div class="text-center">
-      <button id="authToggleButton" class="text-yellow-300 font-bold bg-transparent border-none">Nog geen account? Registreer hier</button>
     </div>
   </div>
 
@@ -459,14 +457,32 @@
     } else {
         showScreen('cards');
     }
+    updateHeaderButtons();
   }
 
   function handleLogout() {
       DB.logout();
-      window.location.search = ''; // Clear URL params
-      state.isLogin = true;
-      setupAuthScreen();
-      showScreen('auth');
+      showScreen('cards');
+      updateHeaderButtons();
+      showToast("Je bent uitgelogd.", "success");
+  }
+
+  function updateHeaderButtons() {
+      const isLoggedIn = !!DB.getCurrentUserPhone();
+      const logoutButton = document.getElementById('logoutButton');
+      const goToUploadButton = document.getElementById('goToUploadButton');
+      const goToDashboardButton = document.getElementById('goToDashboardButton');
+
+      logoutButton.style.display = isLoggedIn ? 'inline-flex' : 'none';
+      goToDashboardButton.style.display = isLoggedIn ? 'block' : 'none';
+
+      if (isLoggedIn) {
+          goToUploadButton.textContent = "Verkoop Kaart";
+          goToUploadButton.onclick = () => showScreen('upload');
+      } else {
+          goToUploadButton.textContent = "Login om te Verkopen";
+          goToUploadButton.onclick = () => showScreen('auth');
+      }
   }
 
   // --- Main App Logic ---
@@ -621,6 +637,7 @@
       `;
       detailsContainer.querySelector('img').onclick = () => showImageModal(auction.img);
       updateAuctionJoinUI(auction);
+      showScreen('auctionJoin');
   }
 
   function updateAuctionJoinUI(auction) {
@@ -959,7 +976,7 @@
       document.getElementById('authButton').addEventListener('click', () => handleAuth());
       document.getElementById('logoutButton').addEventListener('click', handleLogout);
       document.getElementById('logoutButtonDashboard').addEventListener('click', handleLogout);
-      document.getElementById('goToUploadButton').addEventListener('click', () => showScreen('upload'));
+
       document.getElementById('goToDashboardButton').addEventListener('click', () => showScreen('dashboard'));
       document.getElementById('backToCardsButton').addEventListener('click', () => showScreen('cards'));
       document.getElementById('uploadFileTriggerButton').addEventListener('click', () => document.getElementById('uploadFileInput').click());
@@ -1022,20 +1039,23 @@
           }
 
           const deepLinkAuctionId = urlParams.get('auctionId');
-          if (deepLinkAuctionId) DB.setPendingAuctionId(deepLinkAuctionId);
+          if (deepLinkAuctionId) {
+              DB.setPendingAuctionId(deepLinkAuctionId);
+          }
 
           if (DB.getCurrentUserPhone()) {
               loginSuccess(DB.getCurrentUserPhone());
           } else {
               if (deepLinkAuctionId) {
                   const auction = DB.getAuctions().find(a => a.id === deepLinkAuctionId);
-                  const msg = `Je bent uitgenodigd voor de veiling van: ${auction ? auction.name : 'een kaart'}.`;
+                  const msg = `Je bent uitgenodigd voor de veiling van: ${auction ? auction.name : 'een kaart'}. Login om mee te doen.`;
                   document.getElementById('auth-context-message').textContent = msg;
+                  showScreen('auth');
+              } else {
+                  showScreen('cards');
               }
-              state.isLogin = true;
-              setupAuthScreen();
-              showScreen('auth');
           }
+          updateHeaderButtons();
       }, 500);
   }
 
@@ -1044,4 +1064,5 @@
 
 </body>
 </html>
+
 
